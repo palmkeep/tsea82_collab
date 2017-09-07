@@ -1,6 +1,4 @@
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;Program entry point
-    LEA $7000,A7        ;
+    LEA $7000,A7        ; Program entry point, sets stack-pointer
     JSR INITPIA         ;
     MOVE.L #16416,A4    ;
     MOVE.L #13,D5       ;
@@ -8,10 +6,8 @@
 
     MOVE.B #228,D7      ; EXIT PROGRAM
     TRAP #14            ; ...
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 INITPIA
     MOVE.B #0,$10084    ; Vaalj datariktningsregistret (DDRA)
     MOVE.B #1,$10080    ; Saatt pinne 0 paa PIAA som utgaang
@@ -20,11 +16,7 @@ INITPIA
     MOVE.B #0,$10082    ; Saatt alla pinnar som ingaangar
     MOVE.B #4,$10086    ; Vaalj in/utgaangsregistret
     RTS
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;
-;
 PRINTSTRING
     MOVE.B  (A4)+,D4    ;
     JSR     PRINTCHAR   ;
@@ -33,9 +25,7 @@ PRINTSTRING
     BSR     PRINTSTRING ; 
 EXITPRINT
     RTS                 ; Exit point for PRINTSTRING
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Inargument: ASCII-kodat tecken i register d4
 ; Varning - Denna rutin gaar inte att stega sig igenom med TRACE daa den
 ; anvaander serieporten paa ett saatt som aar inkompatibelt med TRACE.
@@ -48,4 +38,3 @@ PRINTCHAR
     MOVE.B d4,$10042    ; Skicka ut
     MOVE.B (a7)+,d5     ; Aterstaall d5
     RTS                 ; Tips: Saatt en breakpoint h ̈ar om du har problem med trace!
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
