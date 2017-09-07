@@ -6,7 +6,7 @@
     MOVE.L #13,D5       ; ARB.DEBUG Set the length of the string at $4020
     JSR PRINTSTRING     ; ARB.DEBUG Print said string
 
-    MOVE.B #228,D7      ; Stop Execution & Exit to Tutor
+    MOVE.B #228,D7      ; Stop Execution & Exit to ISY Tutor
     TRAP #14            ; ...
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -41,13 +41,13 @@ EXITPRINT
 ; WARNING - You can not step through this routine with TRACE as it uses
 ; the serial port in ways incompatible with TRACE.
 PRINTCHAR
-    MOVE.B d5,-(a7)     ; Saves d5 (bit 7-0) on the stack
+    MOVE.B d5,-(A7)     ; Saves D5 (bit 7-0) on the stack
 WAITTX
-    MOVE.B $10040,d5    ; The serialports statusregister
-    AND.B  #2,d5        ; Isolate bit 1 (Ready to transmit)
-    BEQ waittx          ; Wait until the serialport is ready to send
-    MOVE.B d4,$10042    ; Send D4
-    MOVE.B (a7)+,d5     ; Reset d5
+    MOVE.B $10040,D5    ; The serialports statusregister
+    AND.B  #2,D5        ; Isolate bit 1 (Ready to transmit)
+    BEQ WAITTX          ; Wait until the serialport is ready to send
+    MOVE.B D4,$10042    ; Send D4
+    MOVE.B (A7)+,D5     ; Reset d5
     RTS                 ; Tip: Put a breakpoint here if you are having
                         ; problems with TRACE!
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
