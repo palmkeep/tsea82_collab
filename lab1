@@ -23,8 +23,8 @@ INITPIA
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Function that prints out the string starting at the address stored in A4 with
-; the length set at D5.
+; Arguments: ASCII-string starting at A4 with length D5.
+; Function that prints out an arbitrary long string.
 PRINTSTRING
     MOVE.B  (A4)+,D4    ; Move the first char to D4 and incr. the A4 pointer
     JSR     PRINTCHAR   ; Call the PRINTCHAR subroutine
