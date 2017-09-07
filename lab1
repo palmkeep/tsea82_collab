@@ -1,40 +1,54 @@
-    LEA $7000,A7        ; Program entry point, sets stack-pointer
-    JSR INITPIA         ;
-    MOVE.L #16416,A4    ;
-    MOVE.L #13,D5       ;
-    JSR PRINTSTRING     ;
 
-    MOVE.B #228,D7      ; EXIT PROGRAM
+
+    LEA $7000,A7        ; Program entry point, sets stack-pointer
+    JSR INITPIA         ; Initiate PIA
+    MOVE.L #16416,A4    ; ARB.DEBUG Select string starting at the address $4020
+    MOVE.L #13,D5       ; ARB.DEBUG Set the length of the string at $4020
+    JSR PRINTSTRING     ; ARB.DEBUG Print said string
+
+    MOVE.B #228,D7      ; Stop Execution & Exit to Tutor
     TRAP #14            ; ...
     
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Initialize the PIA interface
 INITPIA
-    MOVE.B #0,$10084    ; Vaalj datariktningsregistret (DDRA)
-    MOVE.B #1,$10080    ; Saatt pinne 0 paa PIAA som utgaang
-    MOVE.B #4,$10084    ; Vaalj in/utgaangsregistret
-    MOVE.B #0,$10086    ; Vaalj datariktningsregistret (DDRB)
-    MOVE.B #0,$10082    ; Saatt alla pinnar som ingaangar
-    MOVE.B #4,$10086    ; Vaalj in/utgaangsregistret
+    MOVE.B #0,$10084    ; Select the data-direction register for DDRA
+    MOVE.B #1,$10080    ; Set pin 0 on the PIAA as output
+    MOVE.B #4,$10084    ; Select the In/Out register
+    MOVE.B #0,$10086    ; Select the data-direction register for DDRB 
+    MOVE.B #0,$10082    ; Set all pins as input
+    MOVE.B #4,$10086    ; Select In/Out register
     RTS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Function that prints out the string starting at the address stored in A4 with
+; the length set at D5.
 PRINTSTRING
-    MOVE.B  (A4)+,D4    ;
-    JSR     PRINTCHAR   ;
-    SUB     #1,D5       ;
-    BEQ     EXITPRINT   ; 
-    BSR     PRINTSTRING ; 
+    MOVE.B  (A4)+,D4    ; Move the first char to D4 and incr. the A4 pointer
+    JSR     PRINTCHAR   ; Call the PRINTCHAR subroutine
+    SUB     #1,D5       ; Subtract 1 from D5 (string length)
+    BEQ     EXITPRINT   ; Exit PRINTSTRING if D5 is now equal to 0
+    BSR     PRINTSTRING ; Restart the PRINTSTRING subroutine at the next char
 EXITPRINT
     RTS                 ; Exit point for PRINTSTRING
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-; Inargument: ASCII-kodat tecken i register d4
-; Varning - Denna rutin gaar inte att stega sig igenom med TRACE daa den
-; anvaander serieporten paa ett saatt som aar inkompatibelt med TRACE.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments: ASCII-coded sign in register D4.
+; WARNING - You can not step through this routine with TRACE as it uses
+; the serial port in ways incompatible with TRACE.
 PRINTCHAR
-    MOVE.B d5,-(a7)     ; Spara undan d5 (bit 7-0) p ̊a stacken
-    WAITTX
-    MOVE.B $10040,d5    ; Serieportens statusregister
-    AND.B  #2,d5        ; Isolera bit 1 (Ready to transmit)
-    BEQ waittx          ; Vaanta tills serieporten  ̈ar klar att s ̈anda
-    MOVE.B d4,$10042    ; Skicka ut
-    MOVE.B (a7)+,d5     ; Aterstaall d5
-    RTS                 ; Tips: Saatt en breakpoint h ̈ar om du har problem med trace!
+    MOVE.B d5,-(a7)     ; Saves d5 (bit 7-0) on the stack
+WAITTX
+    MOVE.B $10040,d5    ; The serialports statusregister
+    AND.B  #2,d5        ; Isolate bit 1 (Ready to transmit)
+    BEQ waittx          ; Wait until the serialport is ready to send
+    MOVE.B d4,$10042    ; Send D4
+    MOVE.B (a7)+,d5     ; Reset d5
+    RTS                 ; Tip: Put a breakpoint here if you are having
+                        ; problems with TRACE!
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ 
