@@ -1,0 +1,51 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;Program entry point
+    LEA $7000,A7        ;
+    JSR INITPIA         ;
+    MOVE.L #16416,A4    ;
+    MOVE.L #13,D5       ;
+    JSR PRINTSTRING     ;
+
+    MOVE.B #228,D7      ; EXIT PROGRAM
+    TRAP #14            ; ...
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+INITPIA
+    MOVE.B #0,$10084    ; Vaalj datariktningsregistret (DDRA)
+    MOVE.B #1,$10080    ; Saatt pinne 0 paa PIAA som utgaang
+    MOVE.B #4,$10084    ; Vaalj in/utgaangsregistret
+    MOVE.B #0,$10086    ; Vaalj datariktningsregistret (DDRB)
+    MOVE.B #0,$10082    ; Saatt alla pinnar som ingaangar
+    MOVE.B #4,$10086    ; Vaalj in/utgaangsregistret
+    RTS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;
+PRINTSTRING
+    MOVE.B  (A4)+,D4    ;
+    JSR     PRINTCHAR   ;
+    SUB     #1,D5       ;
+    BEQ     EXITPRINT   ; 
+    BSR     PRINTSTRING ; 
+EXITPRINT
+    RTS                 ; Exit point for PRINTSTRING
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Inargument: ASCII-kodat tecken i register d4
+; Varning - Denna rutin gaar inte att stega sig igenom med TRACE daa den
+; anvaander serieporten paa ett saatt som aar inkompatibelt med TRACE.
+PRINTCHAR
+    MOVE.B d5,-(a7)     ; Spara undan d5 (bit 7-0) p ̊a stacken
+    WAITTX
+    MOVE.B $10040,d5    ; Serieportens statusregister
+    AND.B  #2,d5        ; Isolera bit 1 (Ready to transmit)
+    BEQ waittx          ; Vaanta tills serieporten  ̈ar klar att s ̈anda
+    MOVE.B d4,$10042    ; Skicka ut
+    MOVE.B (a7)+,d5     ; Aterstaall d5
+    RTS                 ; Tips: Saatt en breakpoint h ̈ar om du har problem med trace!
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
