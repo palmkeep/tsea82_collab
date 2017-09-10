@@ -78,25 +78,6 @@ ACTALARM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Arguments:    None.
-; Returns:      Pressed button encoded as ASCII.
-GETKEY
-    
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments:    Chosen key in D4.
-; Returns:      Nothing.
-;
-;               Moves the contents of $4001-$4003 backwards one byte 
-;               to $4000-$4002. Stores the contents in D4 at $4003.
-ADDKEY
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments:    None.
 ; Returns:      Nothing.
 ;
 ;               Places invalid value in the in-buffer.
@@ -107,10 +88,31 @@ CLEARINPUT
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments:    None.
-; Returns:      .
-;
-CHECKCODE
-    
+; Arguments: 	None.
+; Returns: 		Pressed button in D4.
+GETKEY
+	BTST.B #5,$10082	; Check if key is being pressed (bit num5 in DDRB).
+	BEQ GETKEY			; Wait until key has been released.
+WAITPRESS
+	BTST.B #5,$10082	; Check if key is being pressed (bit num5 in DDRB).
+	BNE WAITPRESS		; Wait for key press.
+WAITRELEASE
+	BTST.B #5,$10082	; Check if key is being pressed (bit num5 in DDRB).
+	BEQ WAITRELEASE 	; Go back to start if keyboard has not been pressed.
+	MOVE.B $10082,D4    ; Move input from DDRB to D4
+	AND.B #%00001111,D4	; Keep only the 4 LSD bits in D4 (output).
+	RTS                 ; 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+   
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments: 	Key to be added in D4.
+; Returns:		Nothing.
+; Moves the key in D4 to $4003 after shifting $4001-$4003 to $4000-$4002. The key
+; that was originally in $4000 disappears.
+ADDKEY
+    LSL.L #8,$4000  ; Shift all keys in the in-buffer one byte to the left.
+    MOVE.B D4,$4003 ; Enter the key in D4 into the in-buffer.
+    RTS             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
