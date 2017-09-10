@@ -6,6 +6,11 @@
 
     MOVE.L  #16416,A4   ; ARB.DEBUG Select string starting at the address $4020
     MOVE.L  #13,D5      ; ARB.DEBUG Set the length of the string at $4020
+
+    MOVE.L  #$ABCD,D2
+    LSL.L   #8,D2
+    MOVE.L  D2,$6200
+
     JSR     PRINTSTRING ; ARB.DEBUG Print said string
 
     MOVE.B  #228,D7     ; Stop Execution & Exit to ISY Tutor
