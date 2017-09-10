@@ -8,21 +8,66 @@
     MOVE.L  #13,D5      ; ARB.DEBUG Set the length of the string at $4020
 
 
+CLEARBUFFER
+    JSR CLEARINPUT
+    JSR DEACTALARM
+CHARNOTA
+    JSR GETKEY
+    MOVE.B #$A,$4010    ; Store char 'A' in D2
+    JSR CHECKKEY        ;
+    BTST #O,$4010       ;
+    BNE CHARNOTA        ;
+    ACTALARM            ;
 
+STARTREADINPUT
+    GETKEY
+    MOVE.B #$F,$4010    ; Must reset $4010 from previous output
+    CHECKKEY            ;
+    BTST #0,$4010       ;
+    BEQ CHECKCODE       ;
+    JSR CHECKISNUMBER   ;
+    BNE STARTREADINPUT  ;
+    JSR ADDKEY          ;
+    BRA STARTREADINPUT  ;
 
-;   Old test code, keep for debug
-;    MOVE.L  #$ABCD,D2
-;    LSL.L   #8,D2
-;    MOVE.L  D2,$6200
-
-;    JSR     PRINTSTRING ; ARB.DEBUG Print said string
-
-    JSR CHECKCODE
 
 
     MOVE.B  #228,D7     ; Stop Execution & Exit to ISY Tutor
     TRAP    #14         ; ...
-    
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:        Pressed key in D4.
+; Flgs:             Z*, rest unchanged.
+; Returns:          Nothing.
+CHECKISNUMBER
+    MOVE.B D4,$4011     ;
+    SUB #10,$4011       ;
+    BMI ISANUMBER       ;
+    ANDI #%110111,CCR   ;
+    ORI #%00100,CCR     ;
+    RTS                 ;
+ISANUMBER
+    ANDI #%11011,CCR    ;
+    RTS                 ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments: pressed key in D4 and correct key stored in $4010.
+; Returns:  1/0 in $4010.
+CHECKKEY
+    EOR.B D4,$4010      ;
+    BNE CHARNOTEQUAL    ;
+    RTS                 ;
+CHARNOTEQUAL            ;
+    MOVE.B #1,$4010     ;
+    RTS                 ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Initialize the PIA interface
 INITPIA
