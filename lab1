@@ -60,19 +60,19 @@ WAITTX
 ; Return:       Nothing.
 ;
 ;               Turns off the diode connected to the PIAA.
-DEACTALARM
-    ; CODE
-    RTS                 ;
+;DEACTALARM
+;    ; CODE
+;    RTS                 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Arguments:    None.
 ; Returns:      Nothing.
-ACTALARM
-    ; CODE
-    RTS                 ;
-
+;ACTALARM
+;    ; CODE
+;    RTS                 ;
+;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -82,8 +82,8 @@ ACTALARM
 ;
 ;               Places invalid value in the in-buffer.
 ;               Sets the content of $4000-$4003 to $FF.
-CLEARINPUT
-    MOVE.L      
+;CLEARINPUT
+;    MOVE.L      
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -111,7 +111,9 @@ WAITRELEASE
 ; Moves the key in D4 to $4003 after shifting $4001-$4003 to $4000-$4002. The key
 ; that was originally in $4000 disappears.
 ADDKEY
-    LSL.L #8,$4000  ; Shift all keys in the in-buffer one byte to the left.
+    MOVE.L $4000,D3 ;
+    LSL.L #8,D3     ; Shift all keys in the in-buffer one byte to the left.
+    MOVE.L D3,$4000 ;
     MOVE.B D4,$4003 ; Enter the key in D4 into the in-buffer.
     RTS             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
