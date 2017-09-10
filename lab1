@@ -15,14 +15,14 @@ CHARNOTA
     JSR GETKEY
     MOVE.B #$A,$4010    ; Store char 'A' in D2
     JSR CHECKKEY        ;
-    BTST #O,$4010       ;
+    BTST #0,$4010       ;
     BNE CHARNOTA        ;
-    ACTALARM            ;
+    JSR ACTALARM        ;
 
 STARTREADINPUT
-    GETKEY
+    JSR GETKEY          ;
     MOVE.B #$F,$4010    ; Must reset $4010 from previous output
-    CHECKKEY            ;
+    JSR CHECKKEY        ;
     BTST #0,$4010       ;
     BEQ CHECKCODE       ;
     JSR CHECKISNUMBER   ;
@@ -118,7 +118,7 @@ WAITTX
 ;
 ; Checks if the in-buffer at $4000 matches with the stored sequence at $4020.
 ; Branches to (DE-)/ACTALARM depending on XOR comparison.
-CHECKMODE
+CHECKCODE
     MOVE.L $4020,D2     ; Store the correct sequence in D2.
     EOR.L D2,$4000      ; If XOR gives all zeroes as output $4020 and $4000 match.
     BEQ DEACTALARM      ; Input correct     => Deactive alarm.
@@ -132,7 +132,7 @@ CHECKMODE
 ;
 ;               Turns off the diode connected to the PIAA on pin num0 on the DDRA register.
 DEACTALARM
-    MOVE.B #1,$10080    ; Set pin num0 to 1. 
+    MOVE.B #1,$10080    ; Set pin num0 to 1 in the DDRA register. 
     MOVE.B #1,$3999
     RTS                 ; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -144,7 +144,7 @@ DEACTALARM
 ;
 ;               Turns on the diode connected to the PIAA on pin num0 on the DDRA register.
 ACTALARM
-    MOVE.B #0,$10080   ; Set pin num0 in the DRRA to 0.
+    MOVE.B #0,$10080   ; Set pin num0 to 0 in the DRRA register.
     MOVE.B #0,$3999
     RTS                ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -192,4 +192,3 @@ ADDKEY
     MOVE.B D4,$4003 ; Enter the key in D4 into the in-buffer.
     RTS             ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
