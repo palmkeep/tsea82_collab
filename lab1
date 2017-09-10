@@ -1,30 +1,32 @@
 
 
-    LEA $7000,A7        ; Program entry point, sets stack-pointer
-    JSR INITPIA         ; Initiate PIA
-    MOVE.L #16416,A4    ; ARB.DEBUG Select string starting at the address $4020
-    MOVE.L #13,D5       ; ARB.DEBUG Set the length of the string at $4020
-    JSR PRINTSTRING     ; ARB.DEBUG Print said string
+    
+    LEA     $7000,A7    ; Program entry point, sets stack-pointer
+    JSR     INITPIA     ; Initiate PIA
 
-    MOVE.B #228,D7      ; Stop Execution & Exit to ISY Tutor
-    TRAP #14            ; ...
+    MOVE.L  #16416,A4   ; ARB.DEBUG Select string starting at the address $4020
+    MOVE.L  #13,D5      ; ARB.DEBUG Set the length of the string at $4020
+    JSR     PRINTSTRING ; ARB.DEBUG Print said string
+
+    MOVE.B  #228,D7     ; Stop Execution & Exit to ISY Tutor
+    TRAP    #14         ; ...
     
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Initialize the PIA interface
 INITPIA
-    MOVE.B #0,$10084    ; Select the data-direction register for DDRA
-    MOVE.B #1,$10080    ; Set pin 0 on the PIAA as output
-    MOVE.B #4,$10084    ; Select the In/Out register
-    MOVE.B #0,$10086    ; Select the data-direction register for DDRB 
-    MOVE.B #0,$10082    ; Set all pins as input
-    MOVE.B #4,$10086    ; Select In/Out register
+    MOVE.B  #0,$10084   ; Select the data-direction register for DDRA
+    MOVE.B  #1,$10080   ; Set pin 0 on the PIAA as output
+    MOVE.B  #4,$10084   ; Select the In/Out register
+    MOVE.B  #0,$10086   ; Select the data-direction register for DDRB 
+    MOVE.B  #0,$10082   ; Set all pins as input
+    MOVE.B  #4,$10086   ; Select In/Out register
     RTS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments: ASCII-string starting at A4 with length D5.
-; Function that prints out an arbitrary long string.
+; Arguments:    ASCII-string starting at A4 with length D5.
+;               Function that prints out an arbitrary long string.
 PRINTSTRING
     MOVE.B  (A4)+,D4    ; Move the first char to D4 and incr. the A4 pointer
     JSR     PRINTCHAR   ; Call the PRINTCHAR subroutine
@@ -37,18 +39,78 @@ EXITPRINT
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments: ASCII-coded sign in register D4.
-; WARNING - You can not step through this routine with TRACE as it uses
-; the serial port in ways incompatible with TRACE.
+; Arguments:    ASCII-coded sign in register D4.
+; WARNING -     You can not step through this routine with TRACE as it uses
+;               the serial port in ways incompatible with TRACE.
 PRINTCHAR
-    MOVE.B d5,-(A7)     ; Saves D5 (bit 7-0) on the stack
+    MOVE.B  d5,-(A7)    ; Saves D5 (bit 7-0) on the stack
 WAITTX
-    MOVE.B $10040,D5    ; The serialports statusregister
-    AND.B  #2,D5        ; Isolate bit 1 (Ready to transmit)
-    BEQ WAITTX          ; Wait until the serialport is ready to send
-    MOVE.B D4,$10042    ; Send D4
-    MOVE.B (A7)+,D5     ; Reset d5
+    MOVE.B  $10040,D5   ; The serialports statusregister
+    AND.B   #2,D5       ; Isolate bit 1 (Ready to transmit)
+    BEQ     WAITTX      ; Wait until the serialport is ready to send
+    MOVE.B  D4,$10042   ; Send D4
+    MOVE.B  (A7)+,D5    ; Reset d5
     RTS                 ; Tip: Put a breakpoint here if you are having
                         ; problems with TRACE!
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
- 
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:    None.
+; Return:       Nothing.
+;
+;               Turns off the diode connected to the PIAA.
+DEACTALARM
+    ; CODE
+    RTS                 ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:    None.
+; Returns:      Nothing.
+ACTALARM
+    ; CODE
+    RTS                 ;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:    None.
+; Returns:      Pressed button encoded as ASCII.
+GETKEY
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:    Chosen key in D4.
+; Returns:      Nothing.
+;
+;               Moves the contents of $4001-$4003 backwards one byte 
+;               to $4000-$4002. Stores the contents in D4 at $4003.
+ADDKEY
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:    None.
+; Returns:      Nothing.
+;
+;               Places invalid value in the in-buffer.
+;               Sets the content of $4000-$4003 to $FF.
+CLEARINPUT
+    MOVE.L      
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:    None.
+; Returns:      .
+;
+CHECKCODE
+    
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
