@@ -61,13 +61,24 @@ WAITTX
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:        Previously entered keys in $4000 and correct code in $4020.
+; Returns:          Nothing.
+CHECKMODE
+    MOVE.L $4020,D2     ; Store the correct sequence in D2.
+    EOR.L D2,$4000      ; 
+    BEQ DEACTALARM      ;
+    BRA ACTALARM        ;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Arguments:    None.
 ; Return:       Nothing.
 ;
 ;               Turns off the diode connected to the PIAA.
-;DEACTALARM
-;    ; CODE
-;    RTS                 ;
+DEACTALARM
+    MOVE.B #1,$10080    ; Set pin num0 to 1. 
+    RTS                 ; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -75,8 +86,8 @@ WAITTX
 ; Arguments:    None.
 ; Returns:      Nothing.
 ;ACTALARM
-;    ; CODE
-;    RTS                 ;
+;    MOVE.B #1,$10080   ; Set pin num0 to 0.
+;    RTS                ;
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -87,8 +98,9 @@ WAITTX
 ;
 ;               Places invalid value in the in-buffer.
 ;               Sets the content of $4000-$4003 to $FF.
-;CLEARINPUT
-;    MOVE.L      
+CLEARINPUT
+    MOVE.L #$FF,$4000   ; Sets the in-buffer to it's cleared state 0xFF.
+    RTS                 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
