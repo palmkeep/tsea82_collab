@@ -54,7 +54,7 @@ WAITTX
     AND.B   #2,D5       ; Isolate bit 1 (Ready to transmit)
     BEQ     WAITTX      ; Wait until the serialport is ready to send
     MOVE.B  D4,$10042   ; Send D4
-    MOVE.B  (A7)+,D5    ; Reset d5
+    MOVE.B  (A7)+,D5    ; Reset D5
     RTS                 ; Tip: Put a breakpoint here if you are having
                         ; problems with TRACE!
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -63,11 +63,14 @@ WAITTX
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Arguments:        Previously entered keys in $4000 and correct code in $4020.
 ; Returns:          Nothing.
+;
+; Checks if the in-buffer at $4000 matches with the stored sequence at $4020.
+; Branches to (DE-)/ACTALARM depending on XOR comparison.
 CHECKMODE
     MOVE.L $4020,D2     ; Store the correct sequence in D2.
-    EOR.L D2,$4000      ; 
-    BEQ DEACTALARM      ;
-    BRA ACTALARM        ;
+    EOR.L D2,$4000      ; If XOR gives all zeroes as output $4020 and $4000 match.
+    BEQ DEACTALARM      ; Input correct     => Deactive alarm.
+    BRA ACTALARM        ; Input incorrect   => Activate alarm.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -75,7 +78,7 @@ CHECKMODE
 ; Arguments:    None.
 ; Return:       Nothing.
 ;
-;               Turns off the diode connected to the PIAA.
+;               Turns off the diode connected to the PIAA on pin num0 on the DDRA register.
 DEACTALARM
     MOVE.B #1,$10080    ; Set pin num0 to 1. 
     RTS                 ; 
@@ -84,11 +87,12 @@ DEACTALARM
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Arguments:    None.
-; Returns:      Nothing.
-;ACTALARM
-;    MOVE.B #1,$10080   ; Set pin num0 to 0.
-;    RTS                ;
+; Returns:      Sets pin num0 in the DDRA to 0.
 ;
+;               Turns on the diode connected to the PIAA on pin num0 on the DDRA register.
+ACTALARM
+    MOVE.B #1,$10080   ; Set pin num0 in the DRRA to 0.
+    RTS                ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -105,26 +109,26 @@ CLEARINPUT
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments: 	None.
-; Returns: 		Pressed button in D4.
+; Arguments:    None.
+; Returns:      Pressed button in D4.
 GETKEY
-	BTST.B #5,$10082	; Check if key is being pressed (bit num5 in DDRB).
-	BEQ GETKEY			; Wait until key has been released.
+	BTST.B #5,$10082    ; Check if key is being pressed (bit num5 in DDRB).
+	BEQ GETKEY          ; Wait until key has been released.
 WAITPRESS
-	BTST.B #5,$10082	; Check if key is being pressed (bit num5 in DDRB).
-	BNE WAITPRESS		; Wait for key press.
+	BTST.B #5,$10082    ; Check if key is being pressed (bit num5 in DDRB).
+	BNE WAITPRESS       ; Wait for key press.
 WAITRELEASE
-	BTST.B #5,$10082	; Check if key is being pressed (bit num5 in DDRB).
-	BEQ WAITRELEASE 	; Go back to start if keyboard has not been pressed.
+	BTST.B #5,$10082    ; Check if key is being pressed (bit num5 in DDRB).
+	BEQ WAITRELEASE     ; Go back to start if keyboard has not been pressed.
 	MOVE.B $10082,D4    ; Move input from DDRB to D4
-	AND.B #%00001111,D4	; Keep only the 4 LSD bits in D4 (output).
+	AND.B #%00001111,D4 ; Keep only the 4 LSD bits in D4 (output).
 	RTS                 ; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
    
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments: 	Key to be added in D4.
-; Returns:		Nothing.
+; Arguments:    Key to be added in D4.
+; Returns:      Nothing.
 ; Moves the key in D4 to $4003 after shifting $4001-$4003 to $4000-$4002. The key
 ; that was originally in $4000 disappears.
 ADDKEY
