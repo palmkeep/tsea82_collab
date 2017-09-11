@@ -133,7 +133,8 @@ CHECKCODE
 ;               Turns off the diode connected to the PIAA on pin num0 on the DDRA register.
 DEACTALARM
     MOVE.B #1,$10080    ; Set pin num0 to 1 in the DDRA register. 
-    MOVE.B #1,$3999
+    MOVE.B #1,D4        ;
+    JSR PRINTCHAR       ;
     RTS                 ; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -144,9 +145,10 @@ DEACTALARM
 ;
 ;               Turns on the diode connected to the PIAA on pin num0 on the DDRA register.
 ACTALARM
-    MOVE.B #0,$10080   ; Set pin num0 to 0 in the DRRA register.
-    MOVE.B #0,$3999
-    RTS                ;
+    MOVE.B #0,$10080    ; Set pin num0 to 0 in the DRRA register.
+    MOVE.B #0,D4        ;
+    JSR PRINTCHAR       ;
+    RTS                 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
