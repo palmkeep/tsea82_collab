@@ -10,22 +10,33 @@
 
 CLEARBUFFER
     JSR CLEARINPUT
-    JSR DEACTALARM
+    BRA DEACTALARM
+
+
 CHARNOTA
     JSR GETKEY
-    MOVE.B #$A,$4010    ; Store char 'A' in D2
+
+    MOVE.B #$A,$4004    ; Store char 'A' in D2
     JSR CHECKKEY        ;
-    BTST #0,$4010       ;
+    BTST #0,$4004       ;
     BNE CHARNOTA        ;
-    JSR ACTALARM        ;
+
+    BRA ACTALARM        ;
 
 STARTREADINPUT
     JSR GETKEY          ;
-    MOVE.B #$F,$4010    ; Must reset $4010 from previous output
+
+    MOVE.B #$F,$4004    ; Must reset $4004 from previous output
     JSR CHECKKEY        ;
-    BTST #0,$4010       ;
+    MOVE.L  #16416,A4   ;
+    MOVE.L  #13,D5      ;
+    BTST #0,$4004       ;
     BEQ CHECKCODE       ;
+
+
+
     JSR CHECKISNUMBER   ;
+    BTST #0,$4004       ;
     BNE STARTREADINPUT  ;
     JSR ADDKEY          ;
     BRA STARTREADINPUT  ;
@@ -43,27 +54,27 @@ STARTREADINPUT
 ; Flgs:             Z*, rest unchanged.
 ; Returns:          Nothing.
 CHECKISNUMBER
-    MOVE.B D4,$4011     ;
-    SUB #10,$4011       ;
+    MOVE.B D4,$4004     ;
+    SUB.B #10,$4004     ;
     BMI ISANUMBER       ;
-    ANDI #%110111,CCR   ;
-    ORI #%00100,CCR     ;
+    MOVE.B #1,$4004     ;
     RTS                 ;
 ISANUMBER
-    ANDI #%11011,CCR    ;
+    MOVE.B #0,$4004     ;
     RTS                 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments: pressed key in D4 and correct key stored in $4010.
-; Returns:  1/0 in $4010.
+; Arguments: pressed key in D4 and correct key stored in $4004.
+; Returns:  1/0 in $4004.
 CHECKKEY
-    EOR.B D4,$4010      ;
+    EOR.B D4,$4004      ;
     BNE CHARNOTEQUAL    ;
+    MOVE.B #0,$4004
     RTS                 ;
 CHARNOTEQUAL            ;
-    MOVE.B #1,$4010     ;
+    MOVE.B #1,$4004     ;
     RTS                 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -85,11 +96,14 @@ INITPIA
 ; Arguments:    ASCII-string starting at A4 with length D5.
 ;               Function that prints out an arbitrary long string.
 PRINTSTRING
+    MOVE.L  #16416,A4   ;
+    MOVE.L  #13,D5      ;
+LOOPYSTRING
     MOVE.B  (A4)+,D4    ; Move the first char to D4 and incr. the A4 pointer
     JSR     PRINTCHAR   ; Call the PRINTCHAR subroutine
     SUB     #1,D5       ; Subtract 1 from D5 (string length)
     BEQ     EXITPRINT   ; Exit PRINTSTRING if D5 is now equal to 0
-    BSR     PRINTSTRING ; Restart the PRINTSTRING subroutine at the next char
+    BSR     LOOPYSTRING ; Restart the PRINTSTRING subroutine at the next char
 EXITPRINT
     RTS                 ; Exit point for PRINTSTRING
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -100,7 +114,7 @@ EXITPRINT
 ; WARNING -     You can not step through this routine with TRACE as it uses
 ;               the serial port in ways incompatible with TRACE.
 PRINTCHAR
-    MOVE.B  d5,-(A7)    ; Saves D5 (bit 7-0) on the stack
+    MOVE.B  D5,-(A7)    ; Saves D5 (bit 7-0) on the stack
 WAITTX
     MOVE.B  $10040,D5   ; The serialports statusregister
     AND.B   #2,D5       ; Isolate bit 1 (Ready to transmit)
@@ -113,16 +127,16 @@ WAITTX
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments:        Previously entered keys in $4000 and correct code in $4020.
+; Arguments:        Previously entered keys in $4000 and correct code in $4010.
 ; Returns:          Nothing.
 ;
-; Checks if the in-buffer at $4000 matches with the stored sequence at $4020.
+; Checks if the in-buffer at $4000 matches with the stored sequence at $4010.
 ; Branches to (DE-)/ACTALARM depending on XOR comparison.
 CHECKCODE
-    MOVE.L $4020,D2     ; Store the correct sequence in D2.
-    EOR.L D2,$4000      ; If XOR gives all zeroes as output $4020 and $4000 match.
+    MOVE.L $4010,D2     ; Store the correct sequence in D2.
+    EOR.L D2,$4000      ; If XOR gives all zeroes as output $4010 and $4000 match.
     BEQ DEACTALARM      ; Input correct     => Deactive alarm.
-    BRA ACTALARM        ; Input incorrect   => Activate alarm.
+    BRA FELAKTIGKOD        ; Input incorrect   => Activate alarm.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -133,9 +147,7 @@ CHECKCODE
 ;               Turns off the diode connected to the PIAA on pin num0 on the DDRA register.
 DEACTALARM
     MOVE.B #1,$10080    ; Set pin num0 to 1 in the DDRA register. 
-    MOVE.B #1,D4        ;
-    JSR PRINTCHAR       ;
-    RTS                 ; 
+    BRA CHARNOTA        ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -144,11 +156,11 @@ DEACTALARM
 ; Returns:      Sets pin num0 in the DDRA to 0.
 ;
 ;               Turns on the diode connected to the PIAA on pin num0 on the DDRA register.
+FELAKTIGKOD
+    JSR PRINTSTRING     ;
 ACTALARM
     MOVE.B #0,$10080    ; Set pin num0 to 0 in the DRRA register.
-    MOVE.B #0,D4        ;
-    JSR PRINTCHAR       ;
-    RTS                 ;
+    BRA STARTREADINPUT  ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -168,15 +180,13 @@ CLEARINPUT
 ; Arguments:    None.
 ; Returns:      Pressed button in D4.
 GETKEY
-	BTST.B #5,$10082    ; Check if key is being pressed (bit num5 in DDRB).
+	BTST.B #4,$10082    ; Check if key is being pressed (bit num5 in DDRB).
 	BEQ GETKEY          ; Wait until key has been released.
 WAITPRESS
-	BTST.B #5,$10082    ; Check if key is being pressed (bit num5 in DDRB).
+	BTST.B #4,$10082    ; Check if key is being pressed (bit num5 in DDRB).
 	BNE WAITPRESS       ; Wait for key press.
-WAITRELEASE
-	BTST.B #5,$10082    ; Check if key is being pressed (bit num5 in DDRB).
-	BEQ WAITRELEASE     ; Go back to start if keyboard has not been pressed.
-	MOVE.B $10082,D4    ; Move input from DDRB to D4
+	
+    MOVE.B $10082,D4    ; Move input from DDRB to D4
 	AND.B #%00001111,D4 ; Keep only the 4 LSD bits in D4 (output).
 	RTS                 ; 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
