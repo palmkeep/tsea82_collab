@@ -1,0 +1,145 @@
+;
+;   In some places we use .L where we could use .B instead
+;
+;
+;
+;   String to be morsefied                                          |   $6000
+;   T stores the length of one half-period (our standard timeunit)  |   $7100
+;   N stores how many timeunits represents one beep-timeunit        |   $7104
+;   Stackpointer                                                    |   $8000
+;
+;   D0 stores how many chars are left in code
+;
+;
+;            LEA         MORSETABEBIN,A1
+;
+;
+;           ATTGOORA: Soondag:  Finish  BEEP and
+;                                       SEND.
+;                               Check that  MAIN,
+;                                           NEXTCH and
+;                                           BLANK
+;                               work as intended.
+;
+;
+
+
+
+
+
+MAIN:       LEA         $8000,A7        ; Set stackpointer
+
+            CLR.B       $10084          ; Reset CRA and setup DDRA with LSB pin 
+            MOVE.B      #1,$10080       ; as output and the rest of the pins as 
+            MOVE.B      #4,$10084       ; input.
+
+            CLR.B       $10086          ; Reset CRB and setup DDRB with LSB pin 
+            MOVE.B      #1,$10082       ; as output and the rest of the pins as
+            MOVE.B      #4,$10086       ; input.
+
+            MOVE.B      #$04,$10084     ; No interruptions should be generated,
+            MOVE.B      #$04,$10086     ; neither from port A or port B.
+                                        ; Set outbit to 0.
+            LEA         $6000,A0        ; Set A0 to point to the string.
+
+
+NEXTCH:     MOVE.B      (A0)+,D0        ; Get next sign.
+            BEQ         END             ; Z=0: Branch to END,
+            JSR         LOOKUP          ; Otherwise: call LOOKUP.
+
+            CMP.B       #0,D0           ; Check the returned value in D0.
+            BEQ         NEXTCH          ; If D0=0: go to NEXTCH,
+            JSR         SEND            ; Otherwise: call SEND.
+
+            BRA         NEXTCH          ; Go to NEXTCH for next sign.
+
+
+END:        MOVE.B      #228,D7         ; Go back to monitor
+            TRAP        #14             ; in tutor.
+
+
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:        Length of beep in N($7104) times a modifier in D5
+; Returns:          Nothing.
+;
+BEEP:                                   ; If D2=1: set outbit to one,
+                                        ; Otherwise set it to zero.
+                                        ; (Tip: Instruction 'Scc')
+            BSR DELAY                   ; Wait half of a period
+                                        ; Set outbit to zero
+            BSR DELAY                   ; Wait half of a period
+            SUBQ.L #1,D1                ; Count down D1
+            BNE BEEP                    ; If D1>0: keep beeping
+            RTS
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;
+;
+;
+SEND:       MOVE.L      $7104,D1        ; Get number of periods N for a dot.
+            LSL.B       #1,D0           ; Shift upp the next from the morsecode.
+            BEQ         READY           ; Om D0=0 the sign has ended.
+            BCC         DOT             ; C=0: dot, C=1: dash.
+DASH:       MULU        #3,D1           ; Multiply D1 with 3.
+DOT:        MOVE.B      #1,D2           ; Load D2 with 1 for tone.
+            BSR.L       BEEP            ; Send out dot/dash.
+            MOVE.L      $7104,D1        ; Get N again .
+            MOVE.B      #0,D2           ; Load D2 with 0 for paus.
+            BSR.L       BEEP            ; Send paus after dot/dash.
+            BRA         SEND            ; Send next dot/dash.
+READY:      ASL.L       #1,D1           ; Inc. D1 to 2N.
+            MOVE.B      #0,D2           ; Load D2 with 0 for paus.
+            BSR.L       BEEP            ; Send out extra paus after sign.
+            RTS
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:        Length of standard timeunit T($7104).
+; Returns:          Nothing.
+;
+; Uses:             Dataregister: D3.
+; Behaviour:        Only branches can not be called with JSR.
+;
+DELAY:      MOVE.L      $7100,D3        ; Get length of standard timeunit T($7104)
+WAIT:       SUBQ.L      #1,D3           ; Count down by one
+            BNE WAIT                    ; Keep counting if (!=0)
+            RTS                         ; Go back
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:        N($7104) the length of one half-period in our standard timeunit.
+; Return:           Nothing.
+;
+; Behaviour:        Only branches can not be called with JSR.
+;
+BLANK:      MOVE.L      $7104,D1        ; Load D1 with N($7104).
+            MULU        #4,D1           ; Multiply D1 by 4.
+            MOVE.L      #0,D2           ; Load D2 with 0 for paus.
+BLANKLOOP:  JSR         DELAY           ; Send out two*N sets of half-periods of delay
+            JSR         DELAY           ; -||-
+            SUB.L       #1,D1           ; Dec. D1 by 1.
+            BNE         BLANKLOOP       ; Keep silent.
+
+            BRA         NEXTCH          ; UNSURE IF BRANCH OR JUMP
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+MORSETABLEBIN   DC.B $60 $88 $A8 $90 $40 $28 $D0 $08 $20 $78 $B0 $48 $E0 $A0 $F0 $68 $D8 $50 $10 $C0 $30 $18 $70 $98 $B8 $C8 $6C $58 $E8 $FC $7C $3C $1C $0C $04 $84 $C4 $E4 $F4 $56 $CE $E2 $AA $32 $7A $86 $94 $B4 $B6 $4A
+
+MORSETABLEASCII DC.B $41 $42 $43 $44 $45 $46 $47 $48 $49 $4A $4B $4C $4D $4E $4F $50 $51 $52 $53 $54 $55 $56 $57 $58 $59 $5A $5B $5C $30 $31 $32 $33 $34 $35 $36 $37 $38 $39 $2E $2C $3A $3B $3F $27 $2D $2F $28 $29 $22 $3D
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
