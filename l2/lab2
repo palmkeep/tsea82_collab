@@ -40,7 +40,11 @@ MAIN:       LEA         $8000,A7        ; Set stackpointer
             MOVE.B      #$04,$10084     ; No interruptions should be generated,
             MOVE.B      #$04,$10086     ; neither from port A or port B.
                                         ; Set outbit to 0.
+            JSR			INITTABLE	 	; All readable values from ascii -> 0
             LEA         $6000,A0        ; Set A0 to point to the string.
+            MOVE.B      #228,D7
+            TRAP        #14
+
 
 
 NEXTCH:     MOVE.B      (A0)+,D0        ; Get next sign.
@@ -67,17 +71,24 @@ END:        MOVE.B      #228,D7         ; Go back to monitor
 ; Arguments:        Length of beep in N($7104) times a modifier in D5
 ; Returns:          Nothing.
 ;
-BEEP:                                   ; If D2=1: set outbit to one,
-                                        ; Otherwise set it to zero.
+BEEP:       SNE D2                      ; If D2=1: set outbit to one,
                                         ; (Tip: Instruction 'Scc')
             BSR DELAY                   ; Wait half of a period
-                                        ; Set outbit to zero
+            MOVE.B #0,D2                ; Set outbit to zero
             BSR DELAY                   ; Wait half of a period
             SUBQ.L #1,D1                ; Count down D1
             BNE BEEP                    ; If D1>0: keep beeping
             RTS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+LOOKUP:		LEA 	$7000,A1
+		AND.W 	#$00FF,D0
+		MOVE.B 	(A1,D0.W),D0
+		RTS
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
@@ -89,14 +100,14 @@ SEND:       MOVE.L      $7104,D1        ; Get number of periods N for a dot.
             BCC         DOT             ; C=0: dot, C=1: dash.
 DASH:       MULU        #3,D1           ; Multiply D1 with 3.
 DOT:        MOVE.B      #1,D2           ; Load D2 with 1 for tone.
-            BSR.L       BEEP            ; Send out dot/dash.
+            BSR         BEEP            ; Send out dot/dash.
             MOVE.L      $7104,D1        ; Get N again .
             MOVE.B      #0,D2           ; Load D2 with 0 for paus.
-            BSR.L       BEEP            ; Send paus after dot/dash.
+            BSR         BEEP            ; Send paus after dot/dash.
             BRA         SEND            ; Send next dot/dash.
 READY:      ASL.L       #1,D1           ; Inc. D1 to 2N.
             MOVE.B      #0,D2           ; Load D2 with 0 for paus.
-            BSR.L       BEEP            ; Send out extra paus after sign.
+            BSR         BEEP            ; Send out extra paus after sign.
             RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -126,20 +137,42 @@ WAIT:       SUBQ.L      #1,D3           ; Count down by one
 BLANK:      MOVE.L      $7104,D1        ; Load D1 with N($7104).
             MULU        #4,D1           ; Multiply D1 by 4.
             MOVE.L      #0,D2           ; Load D2 with 0 for paus.
-BLANKLOOP:  JSR         DELAY           ; Send out two*N sets of half-periods of delay
+            JSR         DELAY           ; Send out two*N sets of half-periods of delay
             JSR         DELAY           ; -||-
-            SUB.L       #1,D1           ; Dec. D1 by 1.
-            BNE         BLANKLOOP       ; Keep silent.
-
             BRA         NEXTCH          ; UNSURE IF BRANCH OR JUMP
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+INITTABLE:  MOVE.B	#$5E,D5				; LOOPS THROUGH ASCII
+			LEA		$7000,A1			; FROM $7000
+
+ZEROLOOP:	MOVE.B	#0,(A1)+			; WITH POSTINCREMENT
+			SUB.B	#1,D5				;
+			BNE		ZEROLOOP			;			
+
+			LEA 	$7000,A1			; Set adess regiseters for loop
+			LEA 	MORSETABLEBIN,A2	;
+			LEA 	MORSETABLEASCII,A3	;
+			MOVE.B	#50,D5				; Do this for all ascoo values that is needed
+            MOVE.L  #0,D2
+            MOVE.L   #0,D3
+LETTERLOOP:	MOVE.B	(A2)+,D2			;
+			MOVE.B	(A3)+,D3			;
+			MOVE.B	D2,(D3,A1)	 		;
+			SUB.B	#1,D5				;
+			BNE		LETTERLOOP			;
+			RTS							;
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-MORSETABLEBIN   DC.B $60 $88 $A8 $90 $40 $28 $D0 $08 $20 $78 $B0 $48 $E0 $A0 $F0 $68 $D8 $50 $10 $C0 $30 $18 $70 $98 $B8 $C8 $6C $58 $E8 $FC $7C $3C $1C $0C $04 $84 $C4 $E4 $F4 $56 $CE $E2 $AA $32 $7A $86 $94 $B4 $B6 $4A
 
-MORSETABLEASCII DC.B $41 $42 $43 $44 $45 $46 $47 $48 $49 $4A $4B $4C $4D $4E $4F $50 $51 $52 $53 $54 $55 $56 $57 $58 $59 $5A $5B $5C $30 $31 $32 $33 $34 $35 $36 $37 $38 $39 $2E $2C $3A $3B $3F $27 $2D $2F $28 $29 $22 $3D
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+MORSETABLEBIN   DC.B $60,$88,$A8,$90,$40,$28,$D0,$08,$20,$78,$B0,$48,$E0,$A0,$F0,$68,$D8,$50,$10,$C0,$30,$18,$70,$98,$B8,$C8,$6C,$58,$E8,$FC,$7C,$3C,$1C,$0C,$04,$84,$C4,$E4,$F4,$56,$CE,$E2,$AA,$32,$7A,$86,$94,$B4,$B6,$4A
+
+MORSETABLEASCII DC.B $41,$42,$43,$44,$45,$46,$47,$48,$49,$4A,$4B,$4C,$4D,$4E,$4F,$50,$51,$52,$53,$54,$55,$56,$57,$58,$59,$5A,$5B,$5C,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$2E,$2C,$3A,$3B,$3F,$27,$2D,$2F,$28,$29,$22,$3D 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
