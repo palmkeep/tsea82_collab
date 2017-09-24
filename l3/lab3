@@ -1,0 +1,15 @@
+
+
+
+
+
+INITPIA:    CLR.B       $10084                  ; Select DDRA pin direction register on
+                                                ; address $10080.
+            MOVE.B      #%01111111,$10080       ; Set pin A0 through A6 as output. 
+            MOVE.B      #%100,$10084            ; Select in/out register for DDRA
+
+            CLR.B       $10086                  ; Select DDRB pin direction register on
+                                                ; address $10082.
+            MOVE.B      #%00000011,$10082       ; Set pin B0 and B1 as output.
+            MOVE.B      #%100,$10086            ; Select in/out register for DDRB. 
+

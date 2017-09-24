@@ -3,7 +3,7 @@
 ;
 ;
 ;
-;   String to be morsefied                                          |   $6000
+;   String to be morseyfied                                         |   $6000
 ;   T stores the length of one half-period (our standard timeunit)  |   $7100
 ;   N stores how many timeunits represents one beep-timeunit        |   $7104
 ;   Stackpointer                                                    |   $8000
@@ -23,19 +23,15 @@ MAIN:       LEA         $8000,A7        ; Set stackpointer
             MOVE.B      #1,$10080       ; as output and the rest of the pins as 
             MOVE.B      #4,$10084       ; input.
 
-            CLR.B       $10086          ; Reset CRB and setup DDRB with LSB pin 
-            MOVE.B      #1,$10082       ; as output and the rest of the pins as
-            MOVE.B      #4,$10086       ; input.
+            CLR.B       $10086          ; Reset CRB and setup DDRB with all pins
+            MOVE.B      #$FF,$10082     ; as output.
+            MOVE.B      #4,$10086       ;
 
-            MOVE.B      #$04,$10084     ; No interruptions should be generated,
-            MOVE.B      #$04,$10086     ; neither from port A or port B.
+
+
                                         ; Set outbit to 0.
             JSR			INITTABLE	 	; All readable values from ascii -> 0
             LEA         $6000,A0        ; Set A0 to point to the string.
-
-;            MOVE.B      #228,D7
-;            TRAP        #14
-
 
 
 NEXTCH:     MOVE.B      (A0)+,D0        ; Get next sign.
@@ -59,17 +55,17 @@ END:        MOVE.B      #228,D7         ; Go back to monitor
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments:        Length of beep in N($7104) times a modifier in D5
+; Arguments:        Length of beep in N($7104) times a modifier in D1
 ; Returns:          Nothing.
 ;
 ; Behaviour:        Sends current to the speaker.
 ;
-BEEP:       SNE         D2              ; If D2=1: set outbit to one,
-                                        ; (Tip: Instruction 'Scc')
-            BSR         DELAY           ; Wait half of a period
-            MOVE.B      #0,D2           ; Set outbit to zero
-            BSR         DELAY           ; Wait half of a period
-            SUBQ.L      #1,D1           ; Count down D1
+BEEP:       CMP.B       #1,D2           ; If D2=1: set outbit to one
+            SEQ         $10082          ;
+            JSR         DELAY           ; Wait half of a period
+            MOVE.B      #0,$10082       ; Set outbit to zero
+            JSR         DELAY           ; Wait half of a period
+            SUB.B       #1,D1           ; Count down D1
             BNE         BEEP            ; If D1>0: keep beeping
             RTS
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -92,34 +88,34 @@ LOOKUP:	    LEA 	    $7000,A1        ; Point A1 to the ASCII->Binary-Morse table
 ; Behaviour:        Makes them funny noises.
 ;
 SEND:       MOVE.L      $7104,D1        ; Get number of periods N for a dot.
-            LSL.B       #1,D0           ; Shift upp the next from the morsecode.
+            LSL.B       #1,D0           ; Shift up the next from the morsecode.
             BEQ         READY           ; Om D0=0 the sign has ended.
             BCC         DOT             ; C=0: dot, C=1: dash.
 DASH:       MULU        #3,D1           ; Multiply D1 with 3.
 DOT:        MOVE.B      #1,D2           ; Load D2 with 1 for tone.
-            BSR         BEEP            ; Send out dot/dash.
-            MOVE.L      $7104,D1        ; Get N again .
+            JSR         BEEP            ; Send out dot/dash.
+            MOVE.L      $7104,D1        ; Get N again.
             MOVE.B      #0,D2           ; Load D2 with 0 for paus.
-            BSR         BEEP            ; Send paus after dot/dash.
+            JSR         BEEP            ; Send paus after dot/dash.
             BRA         SEND            ; Send next dot/dash.
 READY:      ASL.L       #1,D1           ; Inc. D1 to 2N.
             MOVE.B      #0,D2           ; Load D2 with 0 for paus.
-            BSR         BEEP            ; Send out extra paus after sign.
+            JSR         BEEP            ; Send out extra paus after sign.
             RTS
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; Arguments:        Length of standard timeunit T($7104).
+; Arguments:        Length of standard timeunit T($7100).
 ; Returns:          Nothing.
 ;
 ; Uses:             Dataregister: D3.
 ; Behaviour:        Only branches can not be called with JSR.
 ;
-DELAY:      MOVE.L      $7100,D3        ; Get length of standard timeunit T($7104)
+DELAY:      MOVE.L      $7100,D3        ; Get length of standard timeunit T($7100)
 WAIT:       SUBQ.L      #1,D3           ; Count down by one
-            BNE WAIT                    ; Keep counting if (!=0)
+            BNE         WAIT            ; Keep counting if (!=0)
             RTS                         ; Go back
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -131,12 +127,11 @@ WAIT:       SUBQ.L      #1,D3           ; Count down by one
 ;
 ; Behaviour:        Only branches can not be called with JSR.
 ;
-BLANK:      MOVE.L      $7104,D1        ; Load D1 with N($7104).
-            MULU        #4,D1           ; Multiply D1 by 4.
+BLANK:      MOVE.L      $7104,D4        ; Load D1 with N($7104).
+            MULU        #4,D4           ; Multiply D1 by 4.
             MOVE.L      #0,D2           ; Load D2 with 0 for paus.
-            JSR         DELAY           ; Send out two*N sets of half-periods of delay
-            JSR         DELAY           ; -||-
-            BRA         NEXTCH          ; UNSURE IF BRANCH OR JUMP
+            JSR         BEEP            ; Send out N sets of half-periods of delay
+            BRA         NEXTCH          ;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -154,8 +149,8 @@ ZEROLOOP:	MOVE.B	#0,(A1)+			; WITH POSTINCREMENT
 			LEA 	MORSETABLEBIN,A2	;
 			LEA 	MORSETABLEASCII,A3	;
 			MOVE.B	#50,D5				; Do this for all ascoo values that is needed
-            MOVE.L  #0,D2
-            MOVE.L   #0,D3
+            MOVE.L  #0,D2               ;
+            MOVE.L  #0,D3               ;
 LETTERLOOP:	MOVE.B	(A2)+,D2			;
 			MOVE.B	(A3)+,D3			;
 			MOVE.B	D2,(D3,A1)	 		;
