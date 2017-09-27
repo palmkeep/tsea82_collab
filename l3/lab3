@@ -41,16 +41,16 @@ INITPIA:    clr.B       $10084                  ; Select DDRA pin direction regi
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; Arguments:    Preload A4 with first address of the digit display sequence.
 
-SETDIGITSEG:MOVE.B      #%1111110,(A4)+         ; 0
-            MOVE.B      #%0110000,(A4)+         ; 1
-            MOVE.B      #%1101101,(A4)+         ; 2
-            MOVE.B      #%1111001,(A4)+         ; 3
-            MOVE.B      #%0110011,(A4)+         ; 4
-            MOVE.B      #%1011011,(A4)+         ; 5
-            MOVE.B      #%1011111,(A4)+         ; 6
-            MOVE.B      #%1110000,(A4)+         ; 7
-            MOVE.B      #%1111111,(A4)+         ; 8
-            MOVE.B      #%1111011,(A4)+         ; 9
+SJUSEG:     DC.B      #%1111110              ; 0
+            DC.B      #%0110000             ; 1
+            DC.B      #%1101101             ; 2
+            DC.B      #%1111001             ; 3
+            DC.B      #%0110011             ; 4
+            DC.B      #%1011011             ; 5
+            DC.B      #%1011111             ; 6
+            DC.B      #%1110000             ; 7
+            DC.B      #%1111111             ; 8
+            DC.B      #%1111011             ; 9
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -103,15 +103,14 @@ IRQB:       move.L      D0,-(A7)
             lea         SJUSEG,A0
             add.L       D0,A0
             move.B      (A0),D0
+            MOVE.B      A2,$10082
+            AND.L       #%11,$10082
 
             move.L      (A7)+,D0
             rte
 
 MUXTICK:    add.L       #1,A2
             move.L      A2,D3
-
-            MOVE.B      (A2),D5
-            MOVE.B      (A4,D5),$10080
 
             sub.L       #$904,D3
             beq         RESETMUX
