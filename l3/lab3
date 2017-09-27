@@ -1,15 +1,125 @@
+;ca1 ska vara sekunden medan cb1 ska vara muxklocka
+;
+;
 
+MAIN:       MOVE.L      #IRQA,$74               ; Init interuption vectors
+            MOVE.L      #IRQB,$68
 
+            LEA         $8000,A7                ; Set stack pointer
+            JSR         INITPIA
+            LEA         $2000,A4                ; Load A4 with the address for the digit table
+            JSR         SETDIGITSEG             ; 
+            LEA         $900,A2
+            MOVE.B      #0,$900                 ; Set clock to zero. $900 containing the secound
+            MOVE.B      #0,$901
+            MOVE.B      #0,$902
+            MOVE.B      #0,$903
+            AND.W       #%1111100011111111,SR   ; set current value of interuption to 0
+LOOP:       NOP
+            BRA         LOOP
 
+            MOVE.B      #228,D7
+            TRAP        #14
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-INITPIA:    CLR.B       $10084                  ; Select DDRA pin direction register on
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+INITPIA:    clr.B       $10084                  ; Select DDRA pin direction register on
                                                 ; address $10080.
-            MOVE.B      #%01111111,$10080       ; Set pin A0 through A6 as output. 
-            MOVE.B      #%100,$10084            ; Select in/out register for DDRA
+            move.B      #%01111111,$10080       ; Set pin A0 through A6 as output. 
+            move.B      #%111,$10084            ; Select in/out register for DDRA and allow interruptions, interupt on positive flank
 
-            CLR.B       $10086                  ; Select DDRB pin direction register on
+            clr.B       $10086                  ; Select DDRB pin direction register on
                                                 ; address $10082.
-            MOVE.B      #%00000011,$10082       ; Set pin B0 and B1 as output.
-            MOVE.B      #%100,$10086            ; Select in/out register for DDRB. 
+            move.B      #%00000011,$10082       ; Set pin B0 and B1 as output.
+            move.B      #%111,$10086            ; Select in/out register for DDRB. And allow interrupsions
+            rts 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Arguments:    Preload A4 with first address of the digit display sequence.
+
+SETDIGITSEG:MOVE.B      #%1111110,(A4)+         ; 0
+            MOVE.B      #%0110000,(A4)+         ; 1
+            MOVE.B      #%1101101,(A4)+         ; 2
+            MOVE.B      #%1111001,(A4)+         ; 3
+            MOVE.B      #%0110011,(A4)+         ; 4
+            MOVE.B      #%1011011,(A4)+         ; 5
+            MOVE.B      #%1011111,(A4)+         ; 6
+            MOVE.B      #%1110000,(A4)+         ; 7
+            MOVE.B      #%1111111,(A4)+         ; 8
+            MOVE.B      #%1111011,(A4)+         ; 9
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+IRQA:       move.L      D0,-(A7)
+            tst.B       $10080                  ; func given i avbrott med tutor fran kurshemisdan
+            add.B       #1,$900                 ; adds to secounds and add to the rest if needed
+            move.B      $900,D1
+            sub.B       #$A,D1
+            beq         ADDTENSEC
+            move.L      (A7)+,D0
+            rte
+
+ADDTENSEC:  move.B      #$00,$900
+            add.B       #1,$901
+            move.B      $901,D1
+            sub.B       #$6,D1
+            beq         ADDMIN
+            rte
+
+ADDMIN:     move.B      #$00,$901
+            add.B       #1,$902
+            move.B      $902,D1
+            sub.B       #$A,D1
+            beq         ADDTENMIN
+            rte
+
+ADDTENMIN:  move.B      #$00,$902
+            add.B       #1,$903
+            move.B      $903,D1
+            sub.B       #$6,D1
+            beq         RESETCLOCK
+            rte
+
+RESETCLOCK: move.B      #$00,$903
+            rte
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+IRQB:       move.L      D0,-(A7)
+
+            tst.B       $10082
+
+            jsr         MUXTICK
+
+            and.L       #$F,D0          ; get the bit pattern to D0. at start your value you want must be in d0. fxi this
+            lea         SJUSEG,A0
+            add.L       D0,A0
+            move.B      (A0),D0
+
+            move.L      (A7)+,D0
+            rte
+
+MUXTICK:    add.L       #1,A2
+            move.L      A2,D3
+
+            MOVE.B      (A2),D5
+            MOVE.B      (A4,D5),$10080
+
+            sub.L       #$904,D3
+            beq         RESETMUX
+            rts         
+
+RESETMUX:   move.L      #$900,A2
+            rts
+            
+            
+
 
